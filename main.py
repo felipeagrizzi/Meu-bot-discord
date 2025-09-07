@@ -3,62 +3,56 @@ import os
 from discord.ext import commands
 from dotenv import load_dotenv
 
-# Carregar variáveis do .env
 load_dotenv()
 
-TOKEN = os.getenv("TOKEN")
-PREFIX = "!"
+GUILD_ID = 895003881820524604  # ID do seu servidor
+bot = discord.Bot(intents=discord.Intents.all())
 
-intents = discord.Intents.all()
-bot = commands.Bot(command_prefix=PREFIX, intents=intents)
+# -------------------- Modal para /plano --------------------
+class PlanoModal(discord.ui.Modal):
+    def __init__(self):
+        super().__init__(title="Criar Embed do Plano")
+
+        self.add_item(discord.ui.TextInput(label="Título", placeholder="Digite o título do embed"))
+        self.add_item(discord.ui.TextInput(label="Descrição", placeholder="Digite a descrição", style=discord.TextStyle.paragraph))
+        self.add_item(discord.ui.TextInput(label="Campos (use | para separar)", placeholder="Ex: Nome:Valor | Nome:Valor"))
+        self.add_item(discord.ui.TextInput(label="Rodapé", placeholder="Digite o rodapé"))
+        self.add_item(discord.ui.TextInput(label="Cor (hex sem #)", placeholder="Ex: FF0000 para vermelho"))
+
+    async def on_submit(self, interaction: discord.Interaction):
+        titulo = self.children[0].value
+        descricao = self.children[1].value
+        campos = self.children[2].value
+        rodape = self.children[3].value
+        cor = int(self.children[4].value, 16) if self.children[4].value else 0x3498db
+
+        embed = discord.Embed(title=titulo, description=descricao, color=cor)
+
+        if campos:
+            for campo in campos.split("|"):
+                if ":" in campo:
+                    nome, valor = campo.split(":", 1)
+                    embed.add_field(name=nome.strip(), value=valor.strip(), inline=False)
+
+        embed.set_footer(text=rodape)
+
+        await interaction.response.send_message(embed=embed)
 
 # -------------------- Evento on_ready --------------------
 @bot.event
 async def on_ready():
-    print(f"✅ Bot está online como {bot.user}")
+    print(f"✅ Bot online como {bot.user}!")
+    print("✅ Comandos registrados com sucesso!")
 
-# -------------------- Comando Ping --------------------
-@bot.command(name="ping")
+# -------------------- Comando /ping --------------------
+@bot.slash_command(name="ping", description="Responde com Pong!")
 async def ping(ctx):
-    await ctx.send(f"🏓 Pong! Latência: {bot.latency * 1000:.2f}ms")
+    await ctx.respond(f"Pong! {bot.latency * 1000:.2f}ms")
 
-# -------------------- Comando Plano --------------------
-@bot.command(name="plano")
+# -------------------- Comando /plano --------------------
+@bot.slash_command(name="plano", description="Crie um embed personalizado para planos")
 async def plano(ctx):
-    await ctx.send(
-        "✏ **Vamos criar seu plano!**\n"
-        "Digite no chat usando este formato:\n\n"
-        "`!criarplano Título | Descrição | Nome1:Valor1 | Nome2:Valor2 | Rodapé | FF0000`\n\n"
-        "Exemplo:\n"
-        "`!criarplano Plano VIP | Acesso ilimitado | Benefício:VIP | Preço:R$50 | Obrigado por escolher! | 00FF00`"
-    )
-
-# -------------------- Comando Criar Plano --------------------
-@bot.command(name="criarplano")
-async def criar_plano(ctx, *, args):
-    try:
-        partes = [p.strip() for p in args.split("|")]
-
-        titulo = partes[0]
-        descricao = partes[1]
-        campos = partes[2:-2]  # Tudo que estiver entre descrição e rodapé
-        rodape = partes[-2]
-        cor = int(partes[-1], 16)
-
-        embed = discord.Embed(title=titulo, description=descricao, color=cor)
-
-        for campo in campos:
-            if ":" in campo:
-                nome, valor = campo.split(":", 1)
-                embed.add_field(name=nome.strip(), value=valor.strip(), inline=False)
-
-        embed.set_footer(text=rodape)
-
-        await ctx.send(embed=embed)
-
-    except Exception as e:
-        await ctx.send(f"❌ **Erro ao criar plano:** {e}\n"
-                       "Use o formato correto: `!criarplano Título | Descrição | Nome:Valor | Rodapé | FF0000`")
+    await ctx.send_modal(PlanoModal())
 
 # -------------------- Rodar Bot --------------------
-bot.run(TOKEN)
+bot.run(os.getenv("TOKEN"))
