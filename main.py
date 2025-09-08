@@ -42,7 +42,6 @@ class PlanoModal(discord.ui.Modal):
         if imagem:
             embed.set_image(url=imagem)
 
-        # Envia no chat sem ser ephemeral (visível para todos)
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
 # -------------------- Evento on_ready --------------------
@@ -58,8 +57,9 @@ async def ping(ctx):
 # -------------------- Comando /plano --------------------
 @bot.slash_command(name="plano", description="Crie um embed personalizado para planos")
 async def plano(ctx):
-    modal = PlanoModal()
-    await ctx.send_modal(modal)
+    await ctx.interaction.response.send_modal(PlanoModal())
+    await ctx.delete()  # 🔹 Deleta a mensagem do comando para não mostrar "Felipe usou /plano"
 
 # -------------------- Rodar Bot --------------------
 bot.run(os.getenv("TOKEN"))
+
