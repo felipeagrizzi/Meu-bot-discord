@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-GUILD_ID = 895003881820524604
 bot = discord.Bot(intents=discord.Intents.all())
 
 # -------------------- Modal --------------------
@@ -12,13 +11,13 @@ class PlanoModal(discord.ui.Modal):
     def __init__(self):
         super().__init__(title="Criar Embed do Plano")
 
-        self.add_item(discord.ui.TextInput(label="Título", placeholder="Digite o título do embed"))
-        self.add_item(discord.ui.TextInput(label="Descrição", placeholder="Digite a descrição", style=discord.TextStyle.paragraph))
-        self.add_item(discord.ui.TextInput(label="Campos (use | para separar)", placeholder="Ex: Nome:Valor | Nome:Valor"))
-        self.add_item(discord.ui.TextInput(label="Rodapé", placeholder="Digite o rodapé"))
-        self.add_item(discord.ui.TextInput(label="Cor (hex sem #)", placeholder="Ex: FF0000 para vermelho"))
+        self.add_item(discord.ui.InputText(label="Título", placeholder="Digite o título do embed"))
+        self.add_item(discord.ui.InputText(label="Descrição", placeholder="Digite a descrição", style=discord.InputTextStyle.long))
+        self.add_item(discord.ui.InputText(label="Campos (use | para separar)", placeholder="Ex: Nome:Valor | Nome:Valor"))
+        self.add_item(discord.ui.InputText(label="Rodapé", placeholder="Digite o rodapé"))
+        self.add_item(discord.ui.InputText(label="Cor (hex sem #)", placeholder="Ex: FF0000 para vermelho"))
 
-    async def on_submit(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction):
         try:
             titulo = self.children[0].value
             descricao = self.children[1].value
