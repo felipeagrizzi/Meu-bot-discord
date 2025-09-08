@@ -1,69 +1,65 @@
 import discord
 import os
+from discord.ext import commands
 from dotenv import load_dotenv
 
 load_dotenv()
 
-bot = discord.Bot(intents=discord.Intents.all())
+bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
-# -------------------- Modal --------------------
+# -------------------- Modal para /plano --------------------
 class PlanoModal(discord.ui.Modal):
     def __init__(self):
         super().__init__(title="Criar Embed do Plano")
 
-        # Todos os campos opcionais
-        self.add_item(discord.ui.InputText(label="Título", placeholder="Digite o título do embed (opcional)", required=False))
-        self.add_item(discord.ui.InputText(label="Descrição", placeholder="Digite a descrição (opcional)", style=discord.InputTextStyle.long, required=False))
-        self.add_item(discord.ui.InputText(label="Campos (use | para separar)", placeholder="Ex: Nome:Valor | Nome:Valor (opcional)", required=False))
-        self.add_item(discord.ui.InputText(label="Rodapé", placeholder="Digite o rodapé (opcional)", required=False))
-        self.add_item(discord.ui.InputText(label="Cor (hex sem #)", placeholder="Ex: FF0000 para vermelho (opcional)", required=False))
-        self.add_item(discord.ui.InputText(label="URL da Imagem", placeholder="Ex: https://exemplo.com/imagem.png (opcional)", required=False))
+        self.add_item(discord.ui.InputText(label="Título (opcional)", placeholder="Digite o título do embed", required=False))
+        self.add_item(discord.ui.InputText(label="Descrição (opcional)", placeholder="Digite a descrição", style=discord.InputTextStyle.paragraph, required=False))
+        self.add_item(discord.ui.InputText(label="Campos (use | para separar) (opcional)", placeholder="Ex: Nome:Valor | Nome:Valor", required=False))
+        self.add_item(discord.ui.InputText(label="Rodapé (opcional)", placeholder="Digite o rodapé", required=False))
+        self.add_item(discord.ui.InputText(label="Imagem (URL opcional)", placeholder="Ex: https://link-da-imagem.com", required=False))
 
     async def callback(self, interaction: discord.Interaction):
-        try:
-            titulo = self.children[0].value or ""
-            descricao = self.children[1].value or ""
-            campos = self.children[2].value or ""
-            rodape = self.children[3].value or ""
-            cor = int(self.children[4].value, 16) if self.children[4].value else 0x3498db
-            imagem = self.children[5].value or ""
+        titulo = self.children[0].value or ""
+        descricao = self.children[1].value or ""
+        campos = self.children[2].value or ""
+        rodape = self.children[3].value or ""
+        imagem = self.children[4].value or ""
 
-            embed = discord.Embed(title=titulo, description=descricao, color=cor)
+        # Cor padrão = preto
+        cor = 0x000000
 
-            if campos:
-                for campo in campos.split("|"):
-                    if ":" in campo:
-                        nome, valor = campo.split(":", 1)
-                        embed.add_field(name=nome.strip(), value=valor.strip(), inline=False)
+        embed = discord.Embed(title=titulo if titulo else " ", description=descricao if descricao else " ", color=cor)
 
-            if rodape:
-                embed.set_footer(text=rodape)
+        if campos:
+            for campo in campos.split("|"):
+                if ":" in campo:
+                    nome, valor = campo.split(":", 1)
+                    embed.add_field(name=nome.strip(), value=valor.strip(), inline=False)
 
-            if imagem:
-                embed.set_image(url=imagem)
+        if rodape:
+            embed.set_footer(text=rodape)
 
-            # Responde no canal sem mostrar quem enviou
-            await interaction.response.send_message(embed=embed, ephemeral=False)
-        except Exception as e:
-            await interaction.response.send_message(f"❌ Erro ao criar embed: {e}", ephemeral=True)
+        if imagem:
+            embed.set_image(url=imagem)
 
-# -------------------- Evento --------------------
+        # Envia no chat sem ser ephemeral (visível para todos)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
+
+# -------------------- Evento on_ready --------------------
 @bot.event
 async def on_ready():
-    print(f"✅ Bot online como {bot.user}!")
+    print(f"Bot online! {bot.user}")
 
 # -------------------- Comando /ping --------------------
-@bot.slash_command(name="ping", description="Responde com Pong!")
+@bot.slash_command(name="ping", description="Pong!")
 async def ping(ctx):
     await ctx.respond(f"Pong! {bot.latency * 1000:.2f}ms")
 
 # -------------------- Comando /plano --------------------
 @bot.slash_command(name="plano", description="Crie um embed personalizado para planos")
 async def plano(ctx):
-    try:
-        await ctx.send_modal(PlanoModal())
-    except Exception as e:
-        await ctx.respond(f"❌ Erro ao abrir modal: {e}", ephemeral=True)
+    modal = PlanoModal()
+    await ctx.send_modal(modal)
 
 # -------------------- Rodar Bot --------------------
 bot.run(os.getenv("TOKEN"))
