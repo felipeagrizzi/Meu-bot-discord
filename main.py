@@ -1,52 +1,56 @@
 import discord
 import os
-from discord.ext import commands
 from dotenv import load_dotenv
 
 load_dotenv()
 
-bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
+GUILD_ID = 895003881820524604  # ID do seu servidor
+bot = discord.Bot(intents=discord.Intents.all())
 
 # -------------------- Modal para /plano --------------------
 class PlanoModal(discord.ui.Modal):
     def __init__(self):
         super().__init__(title="Criar Embed do Plano")
 
-        self.add_item(discord.ui.InputText(label="Título (opcional)", placeholder="Digite o título do embed", required=False))
-        self.add_item(discord.ui.InputText(label="Descrição (opcional)", placeholder="Digite a descrição", style=discord.InputTextStyle.paragraph, required=False))
-        self.add_item(discord.ui.InputText(label="Campos (use | para separar) (opcional)", placeholder="Ex: Nome:Valor | Nome:Valor", required=False))
-        self.add_item(discord.ui.InputText(label="Rodapé (opcional)", placeholder="Digite o rodapé", required=False))
-        self.add_item(discord.ui.InputText(label="Imagem (URL opcional)", placeholder="Ex: https://link-da-imagem.com", required=False))
+        self.add_item(discord.ui.TextInput(label="Título", placeholder="Digite o título do embed", required=False))
+        self.add_item(discord.ui.TextInput(label="Descrição", placeholder="Digite a descrição", style=discord.TextStyle.paragraph, required=False))
+        self.add_item(discord.ui.TextInput(label="Campos (use | para separar, ex: Nome:Valor | Nome:Valor)", style=discord.TextStyle.paragraph, required=False))
+        self.add_item(discord.ui.TextInput(label="Rodapé", placeholder="Digite o rodapé", required=False))
+        self.add_item(discord.ui.TextInput(label="Cor (hex sem #)", placeholder="Ex: FF0000 para vermelho", required=False))
+        self.add_item(discord.ui.TextInput(label="Link da imagem (opcional)", placeholder="Cole o link da imagem", required=False))
 
-    async def callback(self, interaction: discord.Interaction):
-        titulo = self.children[0].value or ""
-        descricao = self.children[1].value or ""
-        campos = self.children[2].value or ""
+    async def on_submit(self, interaction: discord.Interaction):
+        titulo = self.children[0].value or "Título Padrão"
+        descricao = self.children[1].value or "Descrição padrão"
+        campos = self.children[2].value
         rodape = self.children[3].value or ""
-        imagem = self.children[4].value or ""
+        cor = int(self.children[4].value, 16) if self.children[4].value else 0x000000
+        imagem = self.children[5].value
 
-        # Cor padrão = preto
-        cor = 0x000000
-
-        embed = discord.Embed(title=titulo if titulo else " ", description=descricao if descricao else " ", color=cor)
+        embed = discord.Embed(
+            title=f"**{titulo}**", 
+            description=f"**{descricao}**", 
+            color=cor
+        )
 
         if campos:
             for campo in campos.split("|"):
                 if ":" in campo:
                     nome, valor = campo.split(":", 1)
-                    embed.add_field(name=nome.strip(), value=valor.strip(), inline=False)
+                    embed.add_field(name=f"**{nome.strip()}**", value=valor.strip(), inline=False)
 
-        if rodape:
-            embed.set_footer(text=rodape)
+        embed.set_footer(text=rodape)
 
         if imagem:
             embed.set_image(url=imagem)
 
-        await interaction.response.send_message(embed=embed, ephemeral=False)
+        await interaction.response.send_message(embed=embed, ephemeral=True)  # Só o usuário vê
 
 # -------------------- Evento on_ready --------------------
 @bot.event
 async def on_ready():
+    guild = discord.Object(id=GUILD_ID)
+    await bot.tree.sync(guild=guild)  # sincroniza os comandos apenas nesse servidor
     print(f"Bot online! {bot.user}")
 
 # -------------------- Comando /ping --------------------
@@ -55,10 +59,10 @@ async def ping(ctx):
     await ctx.respond(f"Pong! {bot.latency * 1000:.2f}ms")
 
 # -------------------- Comando /plano --------------------
-@bot.slash_command(name="plano", description="Crie um embed personalizado para planos")
-async def plano(ctx):
-    await ctx.interaction.response.send_modal(PlanoModal())
-    await ctx.delete()  # 🔹 Deleta a mensagem do comando para não mostrar "Felipe usou /plano"
+@bot.tree.command(name="plano", description="Crie um embed personalizado para planos")
+@discord.app_commands.guilds(discord.Object(id=GUILD_ID))
+async def plano(interaction: discord.Interaction):
+    await interaction.response.send_modal(PlanoModal())
 
 # -------------------- Rodar Bot --------------------
 bot.run(os.getenv("TOKEN"))
